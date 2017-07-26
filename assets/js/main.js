@@ -11,7 +11,7 @@ var COLORS = {
     3: 'grey'
 };
 
-var addCell = function (container, id, status, onClick) {
+var addCell = function (containerId, id, status, onClick) {
     var element = $( '<div/>', {
         'class': 'cell',
         'id': id
@@ -22,10 +22,16 @@ var addCell = function (container, id, status, onClick) {
         element.click(onClick);
     }
 
-    $(container).append(element);
+    $(containerId).append(element);
+};
+
+var clearField = function (id) {
+    $(id).empty();
 };
 
 var initGame = function (response) {
+    clearField('#playerField');
+    clearField('#opponentField');
     playerNumber = response.number;
     for(var i = 0; i < 10; i++) {
         for (var j = 0; j < 10; j++) {
@@ -47,7 +53,7 @@ socket.on('gameEnded', function (winnerId) {
     alert(winnerId === playerNumber ? 'Victory' : 'Defeat');
 });
 
-socket.on('yourTurn', function (id) {
+socket.on('turnChanged', function (id) {
     $('#turnInfo').text(id === playerNumber ? 'your turn' : 'opponent turn');
 });
 
@@ -66,6 +72,7 @@ socket.on('shotStatus', function (status) {
     }
     $('#messages').text('shot status: ' + statusMessage);
 });
+
 socket.on('cellStatusChanged', function (cellInfo) {
     $('#' + cellInfo.playerNumber + cellInfo.x + cellInfo.y).css('background-color', COLORS[cellInfo.cellStatus]);
 });

@@ -12,11 +12,13 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max + 1 - min)) + min;
 }
 
-Game = function (firstClient, secondClient) {
+const Game = function (firstClient, secondClient, gameNumber, onGameEnds) {
     this.clients = {
         0: firstClient,
         1: secondClient
     };
+    this.gameNumber = gameNumber;
+    this.onGameEnds = onGameEnds;
     this.players = {};
     this.players[0] = initPlayer();
     this.players[1] = initPlayer();
@@ -48,19 +50,27 @@ Game.prototype.emitToClients = function (eventName, params) {
 };
 
 Game.prototype.updateCell = function (x, y, playerNumber, cellStatus) {
-    var anotherPlayer = getAnotherPlayer(playerNumber);
+    const anotherPlayer = getAnotherPlayer(playerNumber);
     this.players[playerNumber].playingField.square[x][y] = cellStatus;
     this.players[anotherPlayer].opponentField[x][y] = cellStatus;
     this.emitToClients('cellStatusChanged', {x, y, playerNumber, cellStatus});
 };
 
-Game.prototype.initConnection = function (client, playerNumber) {
+Game.prototype.endGame = function (winner) {
     var self = this;
-    var anotherPlayer = getAnotherPlayer(playerNumber);
+    self.emitToClients('gameEnded', winner);
+    this.clients[0].removeAllListeners('fire');
+    this.clients[1].removeAllListeners('fire');
+    this.onGameEnds(self.gameNumber);
+};
+
+Game.prototype.initConnection = function (client, playerNumber) {
+    const self = this;
+    const anotherPlayer = getAnotherPlayer(playerNumber);
     client.on('fire', function (coords) {
         if (self.turn === playerNumber) {
             var cellStatus;
-            var [shotStatus, gameEnded] = isHit(coords.x, coords.y, self.players[anotherPlayer].playingField.ships);
+            const [shotStatus, gameEnded] = isHit(coords.x, coords.y, self.players[anotherPlayer].playingField.ships);
             if (shotStatus === ShotStatus.MISS) {
                 self.nextPlayerTurn();
                 cellStatus = CELL_STATUS.checked;
@@ -72,9 +82,9 @@ Game.prototype.initConnection = function (client, playerNumber) {
             self.updateCell(coords.x, coords.y, anotherPlayer, cellStatus);
 
             if (gameEnded) {
-                self.emitToClients('gameEnded', playerNumber);
+                self.endGame(playerNumber);
             } else {
-                self.emitToClients('yourTurn', self.turn);
+                self.emitToClients('turnChanged', self.turn);
             }
         }
     });
@@ -87,13 +97,13 @@ Game.prototype.initConnection = function (client, playerNumber) {
 };
 
 function isHit(x, y, ships) {
-    var hasShips = false;
-    var result = false;
+    let hasShips = false;
+    let result = 0;
     ships.forEach(function (ship) {
-        if (ship.heals) {
-            result = result || ship.isFired(x, y);
+        if (ship.health) {
+            result = result || ship.isTouched(x, y);
         }
-        hasShips = hasShips || !!ship.heals;
+        hasShips = hasShips || !!ship.health;
     });
 
     return [result, !hasShips];
@@ -178,7 +188,7 @@ function initPlayingField() {
 }
 
 module.exports = {
-    create: function (firstClient, secondClient) {
-        return new Game(firstClient, secondClient);
+    create: function (firstClient, secondClient, gameNumber, onGameEnds) {
+        return new Game(firstClient, secondClient, gameNumber, onGameEnds);
     }
 };
