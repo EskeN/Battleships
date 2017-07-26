@@ -1,0 +1,14 @@
+{
+  "name": "battleships",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Eskender Yakubov",
+  "license": "ISC",
+  "dependencies": {
+    "node-static": "0.7.9",
+    "socket.io": "2.0.3"
+  }
+}

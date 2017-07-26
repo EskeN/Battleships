@@ -1,0 +1,14 @@
+.field {
+    background-color: lightgray;
+    width: 400px;
+    height: 400px;
+    margin: 60px;
+    display: inline-block;
+}
+
+.cell {
+    width: 38px;
+    height: 38px;
+    border: 1px solid black;
+    display: inline-block;
+}
